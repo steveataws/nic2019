@@ -80,8 +80,9 @@ catch
 }
 
 #==============================================================================
-# Determine the set of AZs available in the current region. We will create
-# public and private subnets in each AZ.
+# Determine the set of AZs available in the current region. We will attempt to
+# create public and private subnets in each AZ. In some regions, not all AZs
+# will permit a subnet to be created.
 
 $zones = Get-EC2AvailabilityZone
 
@@ -101,14 +102,25 @@ Add-EC2InternetGateway -InternetGatewayId $igw.InternetGatewayId -VpcId $vpc.Vpc
 _collectResource 'InternetGateway' $igw.InternetGatewayId
 
 #==============================================================================
-# Create a pair of public and private subnets for each availability zone
+# Create a pair of public and private subnets for each availability zone, where
+# allowed.
 
 $publicSubnets = [System.Collections.ArrayList]::new()
 $privateSubnets = [System.Collections.ArrayList]::new()
 
+# us-west-1 region does not permit subnets to be placed into your us-west-1b zone
+$skipAZs = New-Object System.Collections.Generic.HashSet[string]
+[void] $skipAZs.Add('us-west-1b')
+
 $iprangebase = 0
 foreach ($az in $zones)
 {
+    if ($skipAZs.Contains($az.ZoneName))
+    {
+        Write-Host "...skipping subnet creation for availability zone $($az.ZoneName)"
+        continue
+    }
+
     $public = New-EC2Subnet -VpcId $vpc.VpcId -CidrBlock "10.0.$iprangebase.0/24" -AvailabilityZone $az.ZoneName
     [void] $publicSubnets.Add($public.SubnetId)
     _addNameTagToResource -ResourceID $public.SubnetId -NameTagValue "$VpcName-public-$($az.ZoneId)"
