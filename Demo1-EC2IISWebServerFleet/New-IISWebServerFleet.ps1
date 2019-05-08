@@ -199,7 +199,7 @@ Write-Host "...created NAT gateway $($natGateway.NatGatewayId) associated with E
 # connectivity from the EC2 instances we'll place into the private subnets.
 
 $privateRT = New-EC2RouteTable -VpcId $vpc.VpcId
-_addNameTagToResource -ResourceID $privateRT.RouteTableId -NameTagValue Value="$VpcName-internal"
+_addNameTagToResource -ResourceID $privateRT.RouteTableId -NameTagValue "$VpcName-internal"
 _collectResource 'PrivateRouteTable' $privateRT.RouteTableId
 New-EC2Route -RouteTableId $privateRT.RouteTableId -DestinationCidrBlock "0.0.0.0/0" -NatGatewayId $natGateway.NatGatewayId > $null
 
